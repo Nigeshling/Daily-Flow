@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle2, Circle, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Circle, ChevronLeft, ChevronRight, AlertTriangle, Maximize2, ListTodo } from 'lucide-react';
 import { isSameDay, startOfDay, addDays, subDays, format, isToday, isBefore } from 'date-fns';
 import { Task, TaskType } from '@/types/productivity';
 import { TaskItem } from './TaskItem';
@@ -7,8 +7,19 @@ import { TaskCalendar } from './TaskCalendar';
 import { CreateTaskDialog } from './CreateTaskDialog';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
-export function TaskList() {
+interface TaskListProps {
+  isExpanded?: boolean;
+  onExpandChange?: (expanded: boolean) => void;
+}
+
+export function TaskList({ isExpanded = false, onExpandChange }: TaskListProps) {
   const [tasks, setTasks] = useLocalStorage<Task[]>('productivity-tasks', []);
   const [taskTypes, setTaskTypes] = useLocalStorage<TaskType[]>('productivity-task-types', []);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -57,15 +68,19 @@ export function TaskList() {
   const completedTasks = dayTasks.filter((t) => t.completed);
   const overdueCount = overdueTasks.length;
 
-  return (
-    <div className="glass-card p-6 animate-fade-up stagger-1">
+  // Get all tasks for expanded view
+  const allPendingTasks = tasks.filter((t) => !t.completed);
+  const allCompletedTasks = tasks.filter((t) => t.completed);
+
+  const TaskContent = ({ expanded = false }: { expanded?: boolean }) => (
+    <>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={goToPreviousDay} className="h-8 w-8">
             <ChevronLeft className="w-4 h-4" />
           </Button>
           <div className="text-center min-w-[140px]">
-            <h2 className="text-xl font-semibold text-foreground">
+            <h2 className={`font-semibold text-foreground ${expanded ? 'text-lg' : 'text-xl'}`}>
               {isToday(selectedDate) ? "Today's Tasks" : format(selectedDate, 'EEE, MMM d')}
             </h2>
             {!isToday(selectedDate) && (
@@ -118,7 +133,7 @@ export function TaskList() {
         />
       </div>
 
-      <div className="space-y-3">
+      <div className={`space-y-3 ${expanded ? 'max-h-[50vh] overflow-y-auto pr-2' : ''}`}>
         {/* Overdue Tasks */}
         {overdueTasks.length > 0 && (
           <div className="pb-3 mb-3 border-b border-destructive/20">
@@ -166,6 +181,44 @@ export function TaskList() {
           </div>
         )}
       </div>
-    </div>
+    </>
+  );
+
+  return (
+    <>
+      <div className="glass-card p-6 animate-fade-up stagger-1 relative">
+        {onExpandChange && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onExpandChange(true)}
+            className="absolute top-4 right-4 h-7 w-7 z-10"
+            aria-label="Expand"
+          >
+            <Maximize2 className="w-3.5 h-3.5" />
+          </Button>
+        )}
+        
+        <TaskContent />
+      </div>
+
+      {/* Expanded modal */}
+      <Dialog open={isExpanded} onOpenChange={onExpandChange || (() => {})}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ListTodo className="w-5 h-5" />
+              Tasks
+              <span className="text-sm font-normal text-muted-foreground">
+                ({allPendingTasks.length} pending, {allCompletedTasks.length} completed)
+              </span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="pt-2">
+            <TaskContent expanded />
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

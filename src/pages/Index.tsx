@@ -14,10 +14,22 @@ import { getDailyQuote } from '@/data/quotes';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { Task } from '@/types/productivity';
 import { ListTodo, Heart, BarChart3, Quote, AlertTriangle } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Brain, Coffee } from 'lucide-react';
 
 const Index = () => {
   const [quote] = useState(() => getDailyQuote());
   const [tasks] = useLocalStorage<Task[]>('productivity-tasks', []);
+  
+  // Expanded states
+  const [isTimerExpanded, setIsTimerExpanded] = useState(false);
+  const [isNotesExpanded, setIsNotesExpanded] = useState(false);
+  const [isTasksExpanded, setIsTasksExpanded] = useState(false);
   
   // Calculate overdue tasks (tasks with due date before today that aren't completed)
   const overdueTasks = tasks.filter((t) => {
@@ -81,10 +93,19 @@ const Index = () => {
           <TabsContent value="tasks" className="mt-0">
             <StatsCards />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <TaskList />
+              <TaskList 
+                isExpanded={isTasksExpanded} 
+                onExpandChange={setIsTasksExpanded} 
+              />
               <div className="space-y-6">
-                <FocusTimer />
-                <QuickNotes />
+                <FocusTimer 
+                  isExpanded={isTimerExpanded} 
+                  onExpandChange={setIsTimerExpanded} 
+                />
+                <QuickNotes 
+                  isExpanded={isNotesExpanded} 
+                  onExpandChange={setIsNotesExpanded} 
+                />
               </div>
             </div>
           </TabsContent>
@@ -111,6 +132,21 @@ const Index = () => {
           </p>
         </footer>
       </main>
+
+      {/* Focus Timer Expanded Dialog */}
+      <Dialog open={isTimerExpanded} onOpenChange={setIsTimerExpanded}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Brain className="w-5 h-5" />
+              Focus Timer
+            </DialogTitle>
+          </DialogHeader>
+          <div className="pt-2">
+            <FocusTimer isExpanded onExpandChange={setIsTimerExpanded} />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
